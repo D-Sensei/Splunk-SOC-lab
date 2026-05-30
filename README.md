@@ -1,89 +1,170 @@
-# Splunk SIEM Home Lab — SSH Brute Force Detection
+# 🛡️ Splunk SIEM Home Lab: SSH Brute Force Detection
 
-## Overview
-Built a local SIEM pipeline to monitor a Linux VM, simulate a 
-real SSH brute-force attack, detect it with a correlation rule, 
-and visualize the results on a security dashboard.
+> A local SIEM pipeline that monitors a Linux VM, simulates a real SSH brute-force attack, detects it with a correlation rule, and visualizes the results on a security dashboard.
 
 ---
 
-## Architecture
+## 📌 Project Summary
 
-Host Machine (192.168.0.102) — Windows
-└── Splunk Enterprise (receives logs, runs detections)
-└── Nmap (attack simulation tool)
-
-VM (192.168.0.103) — Linux (VMware)
-└── Splunk Universal Forwarder (ships logs to host)
-└── SSH enabled (attack target)
-
-Data flow: VM logs → UF → TCP 9997 → Splunk Enterprise
+|**Objective** | **Details** |
+|---|---|
+| **Attack simulated** | SSH Brute Force (MITRE ATT&CK T1110.001) |
+| **Detection tool** | Splunk Enterprise 9.x |
+| **Log sources** | `/var/log/auth.log`, `/var/log/syslog` |
+| **Attack tool** | Nmap 7.93 (ssh-brute NSE script) |
+| **Environment** | VMware · Windows 11 host · Linux VM |
+| **Alert logic** | 5+ failed logins from same IP in 60 seconds |
 
 ---
 
-## What Was Built
+## 🏗️ Architecture
+![Nmap attack output](architecture/splunk_lab_architecture_v2.svg)
+
+**Data flow:** `auth.log / syslog` → Splunk UF → TCP 9997 → Splunk Enterprise → Correlation Rule → Alert + Dashboard
+
+---
+
+## 📁 Repository Structure
+
+```
+splunk-soc-homelab/
+├── README.md
+├── configs/
+│   ├── inputs.conf          # Forwarder —> which files to monitor
+│   └── outputs.conf         # Forwarder —> where to send logs
+├── detections/
+│   └── ssh_brute_force.spl  # Correlation rule SPL query
+├── dashboards/
+│   └── vm_security_monitor.xml  # Splunk dashboard (importable)
+├── MightHelp/
+│   └── LearnFromMistake.md  # Solution of problem I faced
+└── Resoures/
+    ├── 1_splunk_events_realtime.png
+    ├── 2_nmap_attack_output.png
+    └── 3_alert_triggered.png
+```
+
+---
+
+## 🔧 What Was Built
 
 ### 1. Log Pipeline
-- Installed Splunk Universal Forwarder on Linux VM
-- Configured forwarder to monitor:
-  - /var/log/auth.log  (SSH login events)
-  - /var/log/syslog    (system events)
-- Opened TCP 9997 on Windows firewall
-- Verified real-time log delivery to Splunk Enterprise
 
-### 2. Attack Simulation (MITRE ATT&CK T1110.001)
-- Used Nmap ssh-brute script from host machine targeting VM SSH
-- Wordlist: top 20 common SSH passwords + actual password appended
-- Fixed single username via userdb file
-- Generated realistic failed login burst in auth.log
+Installed Splunk Universal Forwarder on the Linux VM and configured it to monitor two log sources:
 
-Command used:
+```ini
+# inputs.conf
+[monitor:///var/log/auth.log]
+index = main
+sourcetype = linux_secure
+
+[monitor:///var/log/syslog]
+index = main
+sourcetype = syslog
+```
+
+Opened TCP 9997 on the Windows firewall as a custom inbound rule, then verified real-time delivery in Splunk:
+
+```spl
+index=main sourcetype=linux_secure | head 20
+```
+
+---
+
+### 2. Attack Simulation — MITRE ATT&CK T1110.001
+
+Simulated a password-guessing attack from the Windows host targeting the VM's SSH service using Nmap's `ssh-brute` NSE script.
+
+```bash
 nmap -p 22 --script ssh-brute \
   --script-args "userdb=C:\path\user.txt,passdb=C:\path\passwords.txt" \
   192.168.0.103
+```
 
-### 3. Detection Rule (Correlation Alert)
-- Written in SPL using streamstats sliding window
-- Fires when 5+ failed logins from same IP within 60 seconds
-- Scheduled every 5 minutes via Cron: */5 * * * *
-- Trigger action: Add to Triggered Alerts
-- File: detections/ssh_brute_force.spl
+- Wordlist: top 20 common SSH passwords + actual password appended at end
+- Single username locked via `userdb` file
+- Generated a realistic burst of failed logins in `auth.log`
 
-### 4. Security Dashboard (3 Panels)
-Panel 1 — Failed logins over time (line chart)
-Panel 2 — Top attacking IPs (bar chart)  
-Panel 3 — Brute force success correlation table
-           (IPs with failures AND successful login = HIGH risk)
+---
 
-Plus 3 single-value KPI tiles:
+### 3. Detection Rule — Correlation Alert
+
+Written in SPL using a `streamstats` sliding window. Fires when 5+ failed logins arrive from the same IP within 60 seconds.
+
+```spl
+index=main sourcetype=linux_secure "Failed password"
+| rex field=_raw "from (?<src_ip>\d+\.\d+\.\d+\.\d+)"
+| streamstats time_window=60s count AS attempt_count BY src_ip
+| where attempt_count >= 5
+| table _time, src_ip, attempt_count
+```
+
+**Alert config:**
+- Schedule: `*/5 * * * *` (every 5 minutes)
+- Time range: last 5 minutes
+- Trigger: number of results > 0
+- Action: Add to Triggered Alerts
+
+---
+
+### 4. Security Dashboard — 3 Panels
+
+| Panel | Type | Query logic |
+|---|---|---|
+| Failed logins over time | Line chart | `timechart span=1m count` |
+| Top attacking IPs | Bar chart | `stats count BY src_ip` |
+| Brute force success correlation | Table | Fails + success from same IP = HIGH risk |
+
+Plus 3 KPI tiles (turn red when thresholds exceeded):
 - Total failed logins
-- Unique attacking IPs  
+- Unique attacking IPs
 - Compromised accounts detected
 
 ---
 
-## Tools Used
-- Splunk Enterprise 9.x
-- Splunk Universal Forwarder
-- Nmap 7.93 (ssh-brute NSE script)
-- VMware Workstation
-- Linux (Ubuntu/Debian)
-- Windows 11 (host)
+## 📸 Screenshots
+
+**1. Real-time events arriving in Splunk**
+![Splunk events realtime](dashboard/dashboard.png)
+
+**2. Nmap brute force attack running**
+![Nmap attack output](screenshots/2_nmap_attack_output.png)
+
+**3. Security dashboard — all 3 panels**
+![Dashboard overview](dashboard/dashboard.png)
+
+**4. Alert triggered in Splunk**
+![Alert triggered](screenshots/4_alert_triggered.png)
 
 ---
 
-## Key Skills Demonstrated
+## 🛠️ Tools Used
+
+| Tool | Purpose |
+|---|---|
+| Splunk Enterprise 9.x | SIEM — log indexing, search, alerting |
+| Splunk Universal Forwarder | Log shipping from VM to host |
+| Nmap 7.93 (ssh-brute NSE) | Attack simulation |
+| VMware Workstation | VM environment |
+| Linux (Ubuntu/Debian) | Target machine |
+| Windows 11 | Host / attacker machine |
+
+---
+
+## 🎯 Key Skills Demonstrated
+
 - SIEM deployment and configuration
 - Log forwarding and pipeline setup
-- Threat simulation (T1110.001 SSH Brute Force)
+- Threat simulation (T1110.001 — SSH Brute Force)
 - SPL query writing and correlation logic
+- Sliding-window detection engineering
 - Security dashboard design
-- Alert engineering
+- Alert engineering and scheduling
 
 ---
 
-## Screenshots
-- dashboard_overview.png
-- alert_triggered.png
-- nmap_attack_output.png
-- splunk_events_realtime.png
+## 📚 References
+
+- [MITRE ATT&CK T1110.001](https://attack.mitre.org/techniques/T1110/001/)
+- [Splunk SPL Documentation](https://docs.splunk.com/Documentation/Splunk/latest/SearchReference)
+- [Nmap ssh-brute NSE Script](https://nmap.org/nsedoc/scripts/ssh-brute.html)
