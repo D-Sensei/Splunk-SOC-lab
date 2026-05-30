@@ -1,0 +1,2 @@
+index=main sourcetype=linux_secure "Failed password"
+| timechart span=1m count AS "Failed Logins"
