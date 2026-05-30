@@ -1,0 +1,6 @@
+index=main sourcetype=linux_secure
+| rex field=_raw "(?<status>Failed|Accepted) password.*from (?<src_ip>\d+\.\d+\.\d+\.\d+)"
+| stats count(eval(status="Failed")) AS failures, count(eval(status="Accepted")) AS successes BY src_ip
+| where failures > 3 AND successes > 0
+| eval risk="HIGH"
+| table src_ip, failures, successes, risk
