@@ -83,7 +83,6 @@ Plus 3 single-value KPI tiles:
 ---
 
 ## Screenshots
-[Add these to /screenshots folder]
 - dashboard_overview.png
 - alert_triggered.png
 - nmap_attack_output.png
