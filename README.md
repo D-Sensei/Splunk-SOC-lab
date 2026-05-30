@@ -33,15 +33,21 @@ splunk-soc-homelab/
 │   ├── inputs.conf          # Forwarder —> which files to monitor
 │   └── outputs.conf         # Forwarder —> where to send logs
 ├── detections/
-│   └── ssh_brute_force.spl  # Correlation rule SPL query
+│   └── Brute_Force_Success_Correlation.spl
+│   ├── Failed_Login_Over_Time.spl
+│   └── Top_Attacking_IPs.spl 
 ├── dashboards/
-│   └── vm_security_monitor.xml  # Splunk dashboard (importable)
+│   └── dashboard.png
+│   └── splunk.oxps  # Splunk dashboard (importable)
 ├── MightHelp/
 │   └── LearnFromMistake.md  # Solution of problem I faced
+│   ├── password.txt  # brute password database I used
+│   └── user.txt  # brute userid database I used
 └── Resoures/
-    ├── 1_splunk_events_realtime.png
-    ├── 2_nmap_attack_output.png
-    └── 3_alert_triggered.png
+    ├── Brute_Force_Success_Correlation.png
+    ├── alertCreated.png
+    └── . . . 
+    
 ```
 
 ---
@@ -125,17 +131,24 @@ Plus 3 KPI tiles (turn red when thresholds exceeded):
 ## 📸 Screenshots
 
 **1. Real-time events arriving in Splunk**
-![Splunk events realtime](dashboard/dashboard.png)
+![Splunk events realtime](Resoures/tableofRealtime.png)
 
 **2. Nmap brute force attack running**
-![Nmap attack output](screenshots/2_nmap_attack_output.png)
+![Nmap attack output](Resoures/attackerMachine.png)
+![Nmap attack output](Resoures/bruteforceandDetection.png)
+
 
 **3. Security dashboard — all 3 panels**
 ![Dashboard overview](dashboard/dashboard.png)
 
 **4. Alert triggered in Splunk**
-![Alert triggered](screenshots/4_alert_triggered.png)
+![Alert triggered](Resoures/Brute_Force_Success_Correlation.png)
+![Alert triggered](Resoures/createdAlert.png)
+ ├── **Once Again Attack to check if Alert is triggered or not**
+![Alert triggered](Resoures/triggeredAlert.png)
 
+**4. Core Idea - Architecture**
+![CoreIdea](Resoures/baseIdea.png)
 ---
 
 ## 🛠️ Tools Used
