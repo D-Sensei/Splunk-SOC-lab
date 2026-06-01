@@ -33,14 +33,14 @@ splunk-soc-homelab/
 │   ├── inputs.conf          # Forwarder —> which files to monitor
 │   └── outputs.conf         # Forwarder —> where to send logs
 ├── detections/
-│   └── Brute_Force_Success_Correlation.spl
+│   ├── Brute_Force_Success_Correlation.spl
 │   ├── Failed_Login_Over_Time.spl
 │   └── Top_Attacking_IPs.spl 
 ├── dashboards/
-│   └── dashboard.png
+│   ├── dashboard.png
 │   └── splunk.oxps  # Splunk dashboard (importable)
 ├── MightHelp/
-│   └── LearnFromMistake.md  # Solution of problem I faced
+│   ├── LearnFromMistake.md  # Solution of problem I faced
 │   ├── password.txt  # brute password database I used
 │   └── user.txt  # brute userid database I used
 └── Resoures/
