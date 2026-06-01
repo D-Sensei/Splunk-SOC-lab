@@ -148,7 +148,7 @@ Plus 3 KPI tiles (turn red when thresholds exceeded):
 ![Alert triggered](Resoures/triggeredAlert.png)
 
 **4. Core Idea - Architecture**
-![CoreIdea](Resoures/baseIdea.png)
+![CoreIdea](Resoures/basicArchitecture.png)
 ---
 
 ## 🛠️ Tools Used
